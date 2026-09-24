@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💰 我的消费</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.filters input[type=search] { flex: 1; min-width: 180px; margin-right: 0; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+.toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+.receipt-th { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: zoom-in; display: block; }
+.tax-badge { background: #1d3328; color: #56d364; }
+.ret { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+#lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 50; }
+#lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💰 我的消费</h1>
+    <div class="sub"><a href="index.html">← 回到主页</a> · 带 🧾 税 标记的收据自动保留至 <b>购入年+7</b></div>
+  </header>
+  <nav class="filters">
+    <select id="monthSel"></select>
+    <select id="catSel"><option value="">全部分类</option></select>
+    <input type="search" id="q" placeholder="搜索名字 / 金额 / 备注…">
+    <label class="toggle"><input type="checkbox" id="fReceipt">只看有收据</label>
+    <label class="toggle"><input type="checkbox" id="fTax">只看报税 (🧾)</label>
+  </nav>
+  <section class="grid" style="margin-bottom:18px">
+    <div class="card stat"><div class="num" id="s-total">-</div><div class="lbl">所选月份合计</div></div>
+    <div class="card stat"><div class="num" id="s-count">-</div><div class="lbl">笔数</div></div>
+    <div class="card stat"><div class="num" id="s-avg">-</div><div class="lbl">平均每笔</div></div>
+    <div class="card stat"><div class="num" id="s-max">-</div><div class="lbl">最大一笔</div></div>
+  </section>
+  <section class="card">
+    <h2>分类占比</h2>
+    <div id="cats"></div>
+  </section>
+  <section class="card">
+    <h2>流水</h2>
+    <table>
+      <thead><tr><th>日期</th><th>收据</th><th>项目</th><th>分类</th><th style="text-align:right">金额</th><th>原始记录</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">没有符合条件的记录</div>
+  </section>
+  <footer>数据由 Discord 💰expenses 频道自动汇入 · records/expenses.json · 收据存 records/receipts/</footer>
+</div>
+<div id="lightbox"><img id="lbimg" alt="收据大图"></div>
+<script src="assets/expenses-data.js"></script>
+<script>
+(function(){
+  var E = (window.EXPENSES || []).slice().sort(function(a,b){ return b.date.localeCompare(a.date) || b.id-a.id; });
+  var months = []; E.forEach(function(x){ var m=x.date.slice(0,7); if(months.indexOf(m)<0) months.push(m); });
+  var mSel=document.getElementById("monthSel");
+  months.forEach(function(m,i){ var o=document.createElement("option"); o.value=m; o.textContent=m.replace("-","年")+"月"; mSel.appendChild(o); });
+  var all0=document.createElement("option"); all0.value=""; all0.textContent="全部月份";
+  mSel.insertBefore(all0, mSel.firstChild); mSel.value="";
+
+  var cSel=document.getElementById("catSel"), q=document.getElementById("q"),
+      fR=document.getElementById("fReceipt"), fT=document.getElementById("fTax");
+  [mSel,cSel,fR,fT].forEach(function(el){ el.onchange=render; }); q.oninput=render;
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function money(v){ var s=String(v).toLowerCase().replace(/[,\s]/g,""); var f=parseFloat(s); return isNaN(f)?s:f.toFixed(2); }
+
+  function render(){
+    var m=mSel.value, cat=cSel.value, kw=q.value.trim().toLowerCase(), onlyR=fR.checked, onlyT=fT.checked;
+    function match(x){
+      if(m && x.date.slice(0,7)!==m) return false;
+      if(cat && (x.category||"其他")!==cat) return false;
+      if(onlyR && !x.receipt) return false;
+      if(onlyT && !x.tax) return false;
+      if(kw){
+        var hay=(x.item+" "+(x.category||"")+" "+(x.raw||"")+" "+x.amount+" "+x.currency+" "+(x.note||"")).toLowerCase();
+        if(hay.indexOf(kw)<0 && hay.indexOf(money(kw))<0) return false;
+      }
+      return true;
+    }
+    var list=E.filter(match);
+    var monthAll=E.filter(function(x){ return !m||x.date.slice(0,7)===m; });
+    var cur=(monthAll[0]||E[0]||{}).currency||"RM";
+    var total=monthAll.reduce(function(a,b){return a+b.amount;},0);
+    document.getElementById("s-total").textContent=cur+" "+total.toFixed(2);
+    document.getElementById("s-count").textContent=list.length+(list.length!==monthAll.length?(" / "+monthAll.length):"");
+    document.getElementById("s-avg").textContent=monthAll.length?cur+" "+(total/monthAll.length).toFixed(2):"-";
+    var mx=monthAll.length?Math.max.apply(null,monthAll.map(function(x){return x.amount;})):0;
+    document.getElementById("s-max").textContent=monthAll.length?cur+" "+mx.toFixed(2):"-";
+
+    var byCat={}; monthAll.forEach(function(x){ byCat[x.category||"其他"]=(byCat[x.category||"其他"]||0)+x.amount; });
+    var keys=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];});
+    document.getElementById("cats").innerHTML=keys.map(function(k){
+      var pct=total?100*byCat[k]/total:0;
+      return '<div class="bar-row"><span class="bar-label">'+esc(k)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><span class="bar-val">'+cur+' '+byCat[k].toFixed(2)+' · '+pct.toFixed(0)+'%</span></div>';
+    }).join("")||'<div class="empty">暂无数据</div>';
+
+    var cKeys=[]; E.forEach(function(x){ var c=x.category||"其他"; if(cKeys.indexOf(c)<0) cKeys.push(c); });
+    cSel.innerHTML='<option value="">全部分类</option>'+cKeys.map(function(c){ return '<option value="'+esc(c)+'"'+(c===cat?' selected':'')+'>'+esc(c)+'</option>'; }).join("");
+
+    document.getElementById("rows").innerHTML=list.map(function(x){
+      var rec = x.receipt ? '<img class="receipt-th" src="receipts/'+encodeURI(x.receipt)+'" alt="收据" onclick="showR(\'receipts/'+encodeURI(x.receipt)+'\')" onerror="this.outerHTML=\'<span style=color:var(--muted)>🧾缺文件</span>\'">' : '<span style="color:var(--muted)">—</span>';
+      var tax = x.tax ? '<span class="badge tax-badge">🧾 税</span>'+(x.retention_until?'<span class="ret">保留至 '+x.retention_until+'</span>':'') : '';
+      return '<tr><td>'+x.date+'</td><td>'+rec+'</td><td>'+esc(x.item)+(tax?'<br>'+tax:'')+'</td><td><span class="badge">'+esc(x.category||"-")+'</span></td><td class="amount" style="text-align:right">'+esc(x.currency)+' '+x.amount.toFixed(2)+'</td><td style="color:var(--muted);font-size:12px">'+esc(x.raw||"")+'</td></tr>';
+    }).join("");
+    document.getElementById("empty").style.display=list.length?"none":"block";
+  }
+  window.showR=function(src){ document.getElementById("lbimg").src=src; document.getElementById("lightbox").style.display="flex"; };
+  document.getElementById("lightbox").onclick=function(){ this.style.display="none"; };
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mr.J · 个人主页</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.home-hero { text-align: center; padding: 48px 0 8px; }
+.home-hero .avatar {
+  width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 18px;
+  background: linear-gradient(135deg, #1f6feb, #58a6ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; color: #fff; letter-spacing: 1px;
+}
+.home-hero h1 { font-size: 30px; }
+.home-hero .sub { color: var(--muted); margin-top: 8px; font-size: 14px; }
+a.card { display: block; color: var(--text); transition: border-color .15s, transform .15s; }
+a.card:hover { border-color: var(--accent); text-decoration: none; transform: translateY(-2px); }
+a.card h2 { margin-bottom: 6px; }
+a.card p { color: var(--muted); font-size: 13px; }
+.card-emoji { font-size: 30px; display: block; margin-bottom: 10px; }
+.card-stat { color: var(--accent) !important; margin-top: 12px; font-weight: 600; font-size: 14px !important; }
+.card-soon { opacity: .55; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="home-hero">
+    <div class="avatar">MJ</div>
+    <h1>Mr.J 的小站</h1>
+    <div class="sub">由 AI Butler 自动维护 · 数据来自 Discord「My AI Butler」</div>
+  </div>
+  <section class="grid" style="margin-top:32px">
+    <a class="card" href="expenses.html">
+      <span class="card-emoji">💰</span>
+      <h2>我的消费</h2>
+      <p>随手记账 · 月度汇总 · 分类统计</p>
+      <p class="card-stat" id="exp-stat">—</p>
+    </a>
+    <a class="card" href="ideas.html">
+      <span class="card-emoji">💡</span>
+      <h2>我的点子</h2>
+      <p>突然的灵感 · 帮你完善 · 随时回顾</p>
+      <p class="card-stat" id="idea-stat">—</p>
+    </a>
+    <a class="card card-soon" href="#">
+      <span class="card-emoji">🚧</span>
+      <h2>更多频道</h2>
+      <p>音乐 · 问答 … 想到好玩法再加</p>
+    </a>
+  </section>
+  <footer>最后更新：<span id="updated"></span> · 本地页面，双击任意 html 即可打开</footer>
+</div>
+<script src="assets/expenses-data.js"></script>
+<script src="assets/ideas-data.js"></script>
+<script>
+(function(){
+  var e = window.EXPENSES || [];
+  var now = new Date();
+  var ym = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+  var thisMonth = e.filter(function(x){ return x.date.slice(0,7) === ym; });
+  var sum = thisMonth.reduce(function(a,b){ return a + b.amount; }, 0);
+  var cur = (thisMonth[0] || e[0] || {}).currency || "RM";
+  document.getElementById("exp-stat").textContent = "本月已花 " + cur + " " + sum.toFixed(2) + " · 共 " + e.length + " 笔";
+  var i = window.IDEAS || [];
+  document.getElementById("idea-stat").textContent = "已收集 " + i.length + " 个点子";
+  var d = new Date(document.lastModified);
+  document.getElementById("updated").textContent =
+    d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0") + " " +
+    String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+})();
+</script>
+</body>
+</html>

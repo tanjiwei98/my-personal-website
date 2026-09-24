@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💡 我的点子</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💡 我的点子</h1>
+    <div class="sub"><a href="index.html">← 回到主页</a></div>
+  </header>
+  <nav class="nav"><input type="search" id="q" placeholder="搜索点子 / 标签…"></nav>
+  <section id="list" class="grid"></section>
+  <div class="empty" id="empty" style="display:none">还没有点子——去 Discord 💡ideas 频道丢一句试试！</div>
+  <footer>数据由 Discord 💡ideas 频道自动汇入 · records/ideas.json</footer>
+</div>
+<script src="assets/ideas-data.js"></script>
+<script>
+(function(){
+  var I = (window.IDEAS || []).slice().sort(function(a,b){ return b.date.localeCompare(a.date) || b.id-a.id; });
+  var S = { new:"✨ 新点子", ongoing:"🔨 进行中", done:"✅ 已实现", dropped:"🗑 已放弃" };
+  var q = document.getElementById("q");
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function render(){
+    var kw = q.value.trim().toLowerCase();
+    var list = I.filter(function(x){
+      if(!kw) return true;
+      return (x.title+" "+x.detail+" "+(x.tags||[]).join(" ")).toLowerCase().indexOf(kw)>=0;
+    });
+    document.getElementById("list").innerHTML = list.map(function(x){
+      return '<div class="card"><h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
+        '<div style="color:var(--muted);font-size:12px;margin-bottom:8px">'+x.date+'</div>'+
+        '<p style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+esc(x.detail||"")+'</p>'+
+        '<div style="margin-top:10px">'+(x.tags||[]).map(function(t){ return '<span class="badge">#'+esc(t)+'</span>'; }).join("")+'</div>'+
+        '</div>';
+    }).join("");
+    document.getElementById("empty").style.display = list.length ? "none" : "block";
+  }
+  q.oninput = render; render();
+})();
+</script>
+</body>
+</html>
