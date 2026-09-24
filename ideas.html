@@ -31,11 +31,14 @@
       return (x.title+" "+x.detail+" "+(x.tags||[]).join(" ")).toLowerCase().indexOf(kw)>=0;
     });
     document.getElementById("list").innerHTML = list.map(function(x){
-      return '<div class="card"><h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
+      var inner = '<h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
         '<div style="color:var(--muted);font-size:12px;margin-bottom:8px">'+x.date+'</div>'+
-        '<p style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+esc(x.detail||"")+'</p>'+
-        '<div style="margin-top:10px">'+(x.tags||[]).map(function(t){ return '<span class="badge">#'+esc(t)+'</span>'; }).join("")+'</div>'+
-        '</div>';
+        '<p style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+esc((x.detail||"").slice(0,140))+((x.detail||"").length>140?"…":"")+'</p>'+
+        '<div style="margin-top:10px">'+(x.tags||[]).map(function(t){ return '<span class="badge">#'+esc(t)+'</span>'; }).join("")+
+        (x.page?'<span class="badge" style="margin-left:8px">📄 专属页面 →</span>':'')+'</div>';
+      return x.page
+        ? '<a class="card idea-card-link" href="'+esc(x.page)+'" style="color:inherit;text-decoration:none;transition:border-color .15s,transform .15s" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">'+inner+'</a>'
+        : '<div class="card">'+inner+'</div>';
     }).join("");
     document.getElementById("empty").style.display = list.length ? "none" : "block";
   }
