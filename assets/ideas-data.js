@@ -26,5 +26,20 @@ window.IDEAS = [
     ],
     "status": "new",
     "page": "ideas/looprun.html"
+  },
+  {
+    "id": 3,
+    "date": "2026-09-25",
+    "title": "Trace — 多维度生活记事录",
+    "detail": "一个 APP 里装下各式各样记事录：消费记录、地点打卡(place visit)、会议记录……可上传照片，支持文字视图/照片视图切换，点进任意一条看完整 details。（点子仍在完善中——待回答：给谁用/解决什么/最想要的效果）",
+    "tags": [
+      "APP",
+      "记录",
+      "生活",
+      "照片",
+      "双视图"
+    ],
+    "status": "new",
+    "page": "ideas/trace.html"
   }
 ];
