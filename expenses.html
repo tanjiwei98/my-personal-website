@@ -28,7 +28,6 @@
     <select id="catSel"><option value="">全部分类</option></select>
     <input type="search" id="q" placeholder="搜索名字 / 金额 / 备注…">
     <label class="toggle"><input type="checkbox" id="fReceipt">只看有收据</label>
-    <label class="toggle"><input type="checkbox" id="fTax">只看报税 (🧾)</label>
   </nav>
   <section class="grid" style="margin-bottom:18px">
     <div class="card stat"><div class="num" id="s-total">-</div><div class="lbl">所选月份合计</div></div>
@@ -62,19 +61,18 @@
   mSel.insertBefore(all0, mSel.firstChild); mSel.value="";
 
   var cSel=document.getElementById("catSel"), q=document.getElementById("q"),
-      fR=document.getElementById("fReceipt"), fT=document.getElementById("fTax");
-  [mSel,cSel,fR,fT].forEach(function(el){ el.onchange=render; }); q.oninput=render;
+      fR=document.getElementById("fReceipt");
+  [mSel,cSel,fR].forEach(function(el){ el.onchange=render; }); q.oninput=render;
 
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
   function money(v){ var s=String(v).toLowerCase().replace(/[,\s]/g,""); var f=parseFloat(s); return isNaN(f)?s:f.toFixed(2); }
 
   function render(){
-    var m=mSel.value, cat=cSel.value, kw=q.value.trim().toLowerCase(), onlyR=fR.checked, onlyT=fT.checked;
+    var m=mSel.value, cat=cSel.value, kw=q.value.trim().toLowerCase(), onlyR=fR.checked;
     function match(x){
       if(m && x.date.slice(0,7)!==m) return false;
       if(cat && (x.category||"其他")!==cat) return false;
       if(onlyR && !x.receipt) return false;
-      if(onlyT && !x.tax) return false;
       if(kw){
         var hay=(x.item+" "+(x.category||"")+" "+(x.raw||"")+" "+x.amount+" "+x.currency+" "+(x.note||"")).toLowerCase();
         if(hay.indexOf(kw)<0 && hay.indexOf(money(kw))<0) return false;
