@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>💡 我的点子</title>
 <link rel="stylesheet" href="assets/style.css">
+<style>
+.card{cursor:pointer}
+.modal-bg{position:fixed;inset:0;background:rgba(5,8,16,.72);backdrop-filter:blur(4px);display:none;z-index:50}
+.modal-bg.open{display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--card,#12182a);border:1px solid var(--border,#26314d);border-radius:16px;max-width:680px;width:100%;max-height:86vh;overflow:auto;padding:28px 30px;position:relative}
+.modal h2{font-size:22px;margin:0 0 4px}
+.modal .meta{color:var(--muted,#7f8db0);font-size:12px;margin-bottom:16px}
+.modal .detail{font-size:15px;line-height:1.85;white-space:pre-wrap;color:#d6ddf2}
+.modal .tags{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.modal .close{position:sticky;top:0;float:right;background:none;border:0;color:var(--muted,#7f8db0);font-size:22px;cursor:pointer;line-height:1}
+.go-project{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;padding:13px 18px;border-radius:12px;
+  background:linear-gradient(120deg,var(--accent,#4f8cff),var(--accent2,#8b5cf6));color:#fff;text-decoration:none;font-weight:700;font-size:15px}
+.go-project:hover{filter:brightness(1.12)}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -17,12 +31,18 @@
   <div class="empty" id="empty" style="display:none">还没有点子——去 Discord 💡ideas 频道丢一句试试！</div>
   <footer>数据由 Discord 💡ideas 频道自动汇入 · records/ideas.json</footer>
 </div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal"></div>
+</div>
+
 <script src="assets/ideas-data.js"></script>
 <script>
 (function(){
   var I = (window.IDEAS || []).slice().sort(function(a,b){ return b.date.localeCompare(a.date) || b.id-a.id; });
   var S = { new:"✨ 新点子", ongoing:"🔨 进行中", done:"✅ 已实现", dropped:"🗑 已放弃" };
   var q = document.getElementById("q");
+  var bg = document.getElementById("modalBg"), modal = document.getElementById("modal");
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   function render(){
     var kw = q.value.trim().toLowerCase();
@@ -31,18 +51,36 @@
       return (x.title+" "+x.detail+" "+(x.tags||[]).join(" ")).toLowerCase().indexOf(kw)>=0;
     });
     document.getElementById("list").innerHTML = list.map(function(x){
-      var inner = '<h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
+      return '<div class="card" data-id="'+x.id+'">'+
+        '<h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
         '<div style="color:var(--muted);font-size:12px;margin-bottom:8px">'+x.date+'</div>'+
-        '<p style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+esc((x.detail||"").slice(0,140))+((x.detail||"").length>140?"…":"")+'</p>'+
+        '<p style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+esc((x.detail||"").slice(0,110))+((x.detail||"").length>110?"…":"")+'</p>'+
         '<div style="margin-top:10px">'+(x.tags||[]).map(function(t){ return '<span class="badge">#'+esc(t)+'</span>'; }).join("")+
-        (x.page?'<span class="badge" style="margin-left:8px">📄 专属页面 →</span>':'')+'</div>';
-      return x.page
-        ? '<a class="card idea-card-link" href="'+esc(x.page)+'" style="color:inherit;text-decoration:none;transition:border-color .15s,transform .15s" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">'+inner+'</a>'
-        : '<div class="card">'+inner+'</div>';
+        '<span class="badge" style="margin-left:8px">查看详情 →</span></div></div>';
     }).join("");
     document.getElementById("empty").style.display = list.length ? "none" : "block";
   }
+  function openModal(id){
+    var x = I.find(function(e){ return e.id === id; });
+    if(!x) return;
+    modal.innerHTML = '<button class="close" aria-label="关闭">×</button>'+
+      '<h2>'+esc(x.title)+' <span class="badge">'+(S[x.status]||x.status||"")+'</span></h2>'+
+      '<div class="meta">'+x.date+' · 来自 '+(x.source||"Discord 💡ideas")+'</div>'+
+      '<div class="detail">'+esc(x.detail||"")+'</div>'+
+      ((x.tags||[]).length?'<div class="tags">'+x.tags.map(function(t){ return '<span class="badge">#'+esc(t)+'</span>'; }).join("")+'</div>':'')+
+      (x.page?'<a class="go-project" href="'+esc(x.page)+'">🚀 打开项目页面</a>':'<div class="meta" style="margin-top:20px">（还没有项目页面）</div>');
+    bg.classList.add("open");
+    modal.querySelector(".close").onclick = close;
+    if(history.replaceState) history.replaceState(null,"","#idea-"+x.id);
+  }
+  function close(){ bg.classList.remove("open"); if(history.replaceState) history.replaceState(null,"",location.pathname); }
+  bg.addEventListener("click", function(e){ if(e.target===bg) close(); });
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape") close(); });
+  document.getElementById("list").addEventListener("click", function(e){
+    var card = e.target.closest(".card"); if(card) openModal(+card.dataset.id);
+  });
   q.oninput = render; render();
+  var h = location.hash.match(/^#idea-(\d+)$/); if(h) openModal(+h[1]);
 })();
 </script>
 </body>
