@@ -12,5 +12,19 @@ window.IDEAS = [
     ],
     "status": "new",
     "page": "ideas/ai-storyboard.html"
+  },
+  {
+    "id": 2,
+    "date": "2026-09-25",
+    "title": "LoopRun — 跑步完美路线生成器",
+    "detail": "跑完 Apple Watch 记录后，自动为你计算 5-10km 的完美路线：可回到原点或跑向指定终点。原始点子来自 💡ideas 频道，产品提案页由 AI 生成（独立仓库 looprun 已迁移至此，仅作点子展示页）。",
+    "tags": [
+      "Apple Watch",
+      "跑步",
+      "路线规划",
+      "个人工具"
+    ],
+    "status": "new",
+    "page": "ideas/looprun.html"
   }
 ];

@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoopRun — Smart Route Planning for Apple Watch</title>
+    <meta name="description" content="Set your distance. Get the perfect route. LoopRun calculates the ideal running path that brings you back home or to your destination — right on your wrist.">
+    <style>
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0f;
+            --bg-2: #12121a;
+            --surface: rgba(255, 255, 255, 0.04);
+            --surface-hover: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f5f5f7;
+            --text-2: #a0a0b0;
+            --text-3: #6e6e80;
+            --accent: #ff6b35;
+            --accent-2: #ff2d55;
+            --accent-3: #00e5a0;
+            --gradient: linear-gradient(135deg, #ff6b35 0%, #ff2d55 50%, #ff4080 100%);
+            --gradient-2: linear-gradient(135deg, #00e5a0 0%, #00b4d8 100%);
+            --radius: 20px;
+            --radius-sm: 12px;
+            --max-width: 1200px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        a { color: inherit; text-decoration: none; }
+        img { max-width: 100%; display: block; }
+
+        /* ===== Layout ===== */
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        section {
+            position: relative;
+            padding: 100px 0;
+        }
+
+        /* ===== Nav ===== */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(10, 10, 15, 0.7);
+            border-bottom: 1px solid var(--border);
+            transition: background 0.3s ease;
+        }
+
+        nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gradient);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 2.5px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            transform: rotate(0deg);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 32px;
+        }
+
+        nav ul li a {
+            color: var(--text-2);
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav ul li a:hover { color: var(--text); }
+
+        .nav-cta {
+            padding: 8px 20px;
+            border-radius: 100px;
+            background: var(--gradient);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .nav-cta:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(255, 45, 85, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            nav ul { display: none; }
+        }
+
+        /* ===== Hero ===== */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 80px;
+            overflow: hidden;
+        }
+
+        #hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, transparent 60%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #hero::after {
+            content: '';
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 229, 160, 0.08) 0%, transparent 60%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text-2);
+            margin-bottom: 28px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(0, 229, 160, 0); }
+        }
+
+        h1 {
+            font-size: clamp(40px, 6vw, 76px);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 24px;
+        }
+
+        h1 .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: clamp(17px, 2vw, 21px);
+            color: var(--text-2);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 14px 32px;
+            border-radius: 100px;
+            background: var(--gradient);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 30px rgba(255, 45, 85, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(255, 45, 85, 0.5);
+        }
+
+        .btn-secondary {
+            padding: 14px 32px;
+            border-radius: 100px;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Hero visual — Watch + Route */
+        .hero-visual {
+            margin-top: 64px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ===== Apple Watch Mockup ===== */
+        .watch-wrap {
+            position: relative;
+            width: 260px;
+            height: 380px;
+            margin: 0 auto;
+            perspective: 1000px;
+        }
+
+        .watch {
+            position: relative;
+            width: 220px;
+            height: 260px;
+            margin: 30px auto;
+            background: linear-gradient(145deg, #2a2a35, #1a1a22);
+            border-radius: 48px;
+            border: 3px solid #3a3a45;
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.5),
+                inset 0 2px 4px rgba(255,255,255,0.05),
+                inset 0 -2px 4px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: watchFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes watchFloat {
+            0%, 100% { transform: translateY(0) rotateY(-5deg); }
+            50% { transform: translateY(-12px) rotateY(5deg); }
+        }
+
+        .watch-crown {
+            position: absolute;
+            right: -8px;
+            top: 90px;
+            width: 8px;
+            height: 40px;
+            background: linear-gradient(to right, #555, #333);
+            border-radius: 4px;
+        }
+
+        .watch-crown::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            top: 5px;
+            bottom: 5px;
+            width: 3px;
+            background: repeating-linear-gradient(
+                0deg,
+                #444 0px,
+                #444 2px,
+                #333 2px,
+                #333 4px
+            );
+        }
+
+        .watch-band-top, .watch-band-bottom {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            background: linear-gradient(180deg, #ff6b35, #ff2d55);
+            border-radius: 8px;
+        }
+
+        .watch-band-top {
+            top: -20px;
+            height: 30px;
+            background: linear-gradient(180deg, #e85a28, #ff6b35);
+            border-radius: 12px 12px 4px 4px;
+        }
+
+        .watch-band-bottom {
+            bottom: -20px;
+            height: 30px;
+            background: linear-gradient(0deg, #e85a28, #ff6b35);
+            border-radius: 4px 4px 12px 12px;
+        }
+
+        /* Watch screen content */
+        .watch-screen {
+            position: absolute;
+            inset: 0;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .watch-map {
+            width: 100%;
+            height: 130px;
+            border-radius: 12px;
+            background: #0d1117;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .watch-map svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .route-line {
+            fill: none;
+            stroke: url(#routeGrad);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: drawRoute 4s ease-in-out forwards, dash 2s linear infinite;
+            animation-delay: 0s, 4s;
+        }
+
+        @keyframes drawRoute {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -20; }
+        }
+
+        .route-start, .route-end {
+            fill: #fff;
+            stroke: var(--accent);
+            stroke-width: 2;
+        }
+
+        .route-end {
+            stroke: var(--accent-3);
+        }
+
+        .watch-distance {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .watch-label {
+            font-size: 10px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .watch-stats {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .watch-stat {
+            text-align: center;
+        }
+
+        .watch-stat-val {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .watch-stat-label {
+            font-size: 8px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .watch-progress-bar {
+            width: 80%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .watch-progress-fill {
+            height: 100%;
+            width: 62%;
+            background: var(--gradient);
+            border-radius: 4px;
+            animation: progressGrow 4s ease-in-out forwards;
+        }
+
+        @keyframes progressGrow {
+            from { width: 0%; }
+            to { width: 62%; }
+        }
+
+        /* ===== Section Headers ===== */
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 64px;
+        }
+
+        .section-tag {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            font-size: clamp(32px, 4vw, 52px);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .section-desc {
+            font-size: clamp(16px, 1.8vw, 19px);
+            color: var(--text-2);
+            line-height: 1.6;
+        }
+
+        /* ===== Features ===== */
+        #features {
+            background: var(--bg-2);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 36px 32px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            background: var(--surface-hover);
+            transform: translateY(-4px);
+            border-color: rgba(255, 107, 53, 0.3);
+        }
+
+        .feature-card:hover::before { opacity: 1; }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(255, 107, 53, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            color: var(--text-2);
+            line-height: 1.6;
+        }
+
+        /* ===== How It Works ===== */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 40px;
+            counter-reset: step;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-num {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 auto 24px;
+            position: relative;
+            counter-increment: step;
+        }
+
+        .step-num::after {
+            content: counter(step);
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .step h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 15px;
+            color: var(--text-2);
+            line-height: 1.6;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        /* ===== Showcase ===== */
+        #showcase {
+            background: var(--bg-2);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .showcase-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .showcase-layout {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+
+        .showcase-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .showcase-map {
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+            border-radius: var(--radius);
+            background: #0d1117;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .showcase-map svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .showcase-text h2 {
+            text-align: left;
+        }
+
+        .showcase-list {
+            list-style: none;
+            margin-top: 24px;
+        }
+
+        .showcase-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            color: var(--text-2);
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 229, 160, 0.15);
+            color: var(--accent-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .showcase-text h2 { text-align: center; }
+        }
+
+        /* ===== Stats ===== */
+        #stats {
+            padding: 60px 0;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 32px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 24px;
+        }
+
+        .stat-num {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* ===== FAQ ===== */
+        #faq {
+            padding: 80px 0;
+        }
+
+        .faq-list {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .faq-q {
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 600;
+            padding: 20px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: color 0.2s;
+            font-family: inherit;
+        }
+
+        .faq-q:hover { color: var(--accent); }
+
+        .faq-q .chevron {
+            font-size: 20px;
+            transition: transform 0.3s;
+            color: var(--text-3);
+        }
+
+        .faq-item.open .faq-q .chevron {
+            transform: rotate(45deg);
+        }
+
+        .faq-a {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            color: var(--text-2);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .faq-item.open .faq-a {
+            max-height: 300px;
+            padding-bottom: 20px;
+        }
+
+        /* ===== CTA Section ===== */
+        #cta {
+            text-align: center;
+            padding: 120px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #cta::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(255, 107, 53, 0.12) 0%, transparent 60%);
+            border-radius: 50%;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===== Footer ===== */
+        footer {
+            background: var(--bg-2);
+            border-top: 1px solid var(--border);
+            padding: 60px 0 30px;
+        }
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .footer-top { grid-template-columns: 1fr 1fr; }
+        }
+
+        .footer-brand p {
+            color: var(--text-3);
+            font-size: 14px;
+            margin-top: 12px;
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        .footer-col h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col ul li a {
+            color: var(--text-3);
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-col ul li a:hover { color: var(--text); }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-bottom p {
+            color: var(--text-3);
+            font-size: 13px;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-social a {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .footer-social a:hover {
+            background: var(--gradient);
+            transform: translateY(-2px);
+        }
+
+        /* ===== Scroll Reveal ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            section { padding: 60px 0; }
+            .hero-cta { flex-direction: column; align-items: center; }
+            .btn-primary, .btn-secondary { width: 100%; max-width: 300px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <a href="#hero" class="logo">
+                <div class="logo-icon"></div>
+                LoopRun
+            </a>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how">How It Works</a></li>
+                <li><a href="#showcase">Showcase</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <button class="nav-cta">Get Early Access</button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section id="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="dot"></span>
+                    Built for Apple Watch · Coming Soon
+                </div>
+                <h1>
+                    Set your distance.<br>
+                    Get the <span class="gradient-text">perfect route.</span>
+                </h1>
+                <p class="hero-sub">
+                    LoopRun calculates the ideal running path that brings you back home or to your destination — at the exact distance you want. No more guesswork. Just run.
+                </p>
+                <div class="hero-cta">
+                    <button class="btn-primary" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">See How It Works</button>
+                    <button class="btn-secondary" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Join Waitlist</button>
+                </div>
+
+                <!-- Watch Mockup -->
+                <div class="hero-visual">
+                    <div class="watch-wrap">
+                        <div class="watch-band-top"></div>
+                        <div class="watch">
+                            <div class="watch-crown"></div>
+                            <div class="watch-screen">
+                                <div class="watch-map">
+                                    <svg viewBox="0 0 180 130">
+                                        <defs>
+                                            <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color:#ff6b35"/>
+                                                <stop offset="50%" style="stop-color:#ff2d55"/>
+                                                <stop offset="100%" style="stop-color:#00e5a0"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <!-- Map grid lines -->
+                                        <g stroke="rgba(255,255,255,0.04)" stroke-width="0.5">
+                                            <line x1="0" y1="32" x2="180" y2="32"/>
+                                            <line x1="0" y1="65" x2="180" y2="65"/>
+                                            <line x1="0" y1="98" x2="180" y2="98"/>
+                                            <line x1="45" y1="0" x2="45" y2="130"/>
+                                            <line x1="90" y1="0" x2="90" y2="130"/>
+                                            <line x1="135" y1="0" x2="135" y2="130"/>
+                                        </g>
+                                        <!-- Route path -->
+                                        <path class="route-line" d="M 30 100 Q 50 80, 70 85 T 110 60 Q 130 45, 150 50 Q 155 65, 140 80 Q 120 100, 100 95 Q 80 90, 60 105 Q 40 115, 30 100"/>
+                                        <!-- Start/End points -->
+                                        <circle class="route-start" cx="30" cy="100" r="4"/>
+                                        <circle class="route-end" cx="30" cy="100" r="2.5" fill="#00e5a0"/>
+                                        <!-- Current position -->
+                                        <circle cx="140" cy="80" r="3" fill="#fff">
+                                            <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+                                        </circle>
+                                    </svg>
+                                </div>
+                                <div class="watch-distance">5.2<span style="font-size:16px"> km</span></div>
+                                <div class="watch-label">Distance · Loop Route</div>
+                                <div class="watch-stats">
+                                    <div class="watch-stat">
+                                        <div class="watch-stat-val">3:24</div>
+                                        <div class="watch-stat-label">/km</div>
+                                    </div>
+                                    <div class="watch-stat">
+                                        <div class="watch-stat-val">28:12</div>
+                                        <div class="watch-stat-label">Time</div>
+                                    </div>
+                                    <div class="watch-stat">
+                                        <div class="watch-stat-val">152</div>
+                                        <div class="watch-stat-label">BPM</div>
+                                    </div>
+                                </div>
+                                <div class="watch-progress-bar">
+                                    <div class="watch-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="watch-band-bottom"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section id="stats">
+        <div class="container">
+            <div class="stats-row">
+                <div class="stat-item reveal">
+                    <div class="stat-num">∞</div>
+                    <div class="stat-label">Route Combinations</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-num">±0.1<span style="font-size:0.5em">km</span></div>
+                    <div class="stat-label">Distance Accuracy</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-num">&lt;3<span style="font-size:0.5em">s</span></div>
+                    <div class="stat-label">Route Calculation</div>
+                </div>
+                <div class="stat-item reveal">
+                    <div class="stat-num">100%</div>
+                    <div class="stat-label">On Your Wrist</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-tag">Features</div>
+                <h2>Smart routing,<br>right on your wrist.</h2>
+                <p class="section-desc">LoopRun combines real-time map data with intelligent route optimization to give you the perfect run — every time.</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Precise Distance Matching</h3>
+                    <p>Tell us you want 7km, and you get 7km. Our algorithm finds paths that match your target within 100 meters — no overshooting, no cutting short.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Loop or Linear — Your Choice</h3>
+                    <p>End where you started for a classic loop run, or route to a specific destination. Heading to the office? We'll get you there at the right distance.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🗺️</div>
+                    <h3>Scenic Route Priority</h3>
+                    <p>We prioritize parks, waterfronts, and pedestrian-friendly streets. Your route avoids highways and dead-ends automatically.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">⌚</div>
+                    <h3>Glance & Go</h3>
+                    <p>Set your distance on Apple Watch, get your route instantly. No phone needed. Turn-by-turn haptic guidance keeps you on track.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">🧭</div>
+                    <h3>Live Recalculation</h3>
+                    <p>Took a detour or wandered off? LoopRun recalculates the remaining path in real time to keep your total distance on target.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon">📊</div>
+                    <h3>Auto-Sync to Health</h3>
+                    <p>Every run syncs seamlessly with Apple Health and Activity rings. Track pace, heart rate, elevation, and calories — all in one place.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-tag">How It Works</div>
+                <h2>Three taps to your perfect run.</h2>
+                <p class="section-desc">No planning, no map-staring, no "is this route actually 5K?" Just set, go, and let your watch handle the rest.</p>
+            </div>
+            <div class="steps">
+                <div class="step reveal">
+                    <div class="step-num"></div>
+                    <h3>Set Your Distance</h3>
+                    <p>Rotate the Digital Crown or tap to choose anywhere from 1 to 20 kilometers. Pick loop-back or destination mode.</p>
+                </div>
+                <div class="step reveal">
+                    <div class="step-num"></div>
+                    <h3>Get Your Route</h3>
+                    <p>LoopRun calculates the optimal path in under 3 seconds. See the map, distance, estimated time, and elevation profile.</p>
+                </div>
+                <div class="step reveal">
+                    <div class="step-num"></div>
+                    <h3>Run & Arrive</h3>
+                    <p>Follow haptic turn-by-turn guidance. Arrive at exactly the right spot, at exactly the right distance. Done.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Showcase -->
+    <section id="showcase">
+        <div class="container">
+            <div class="showcase-layout">
+                <div class="showcase-visual reveal">
+                    <div class="showcase-map">
+                        <svg viewBox="0 0 400 400">
+                            <defs>
+                                <linearGradient id="showRouteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#ff6b35;stop-opacity:1"/>
+                                    <stop offset="50%" style="stop-color:#ff2d55;stop-opacity:1"/>
+                                    <stop offset="100%" style="stop-color:#00e5a0;stop-opacity:1"/>
+                                </linearGradient>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+
+                            <!-- Map background blocks -->
+                            <rect x="0" y="0" width="400" height="400" fill="#0d1117"/>
+                            
+                            <!-- Park / green area -->
+                            <rect x="40" y="60" width="100" height="80" rx="8" fill="rgba(0,229,160,0.06)"/>
+                            <rect x="220" y="200" width="120" height="100" rx="8" fill="rgba(0,229,160,0.06)"/>
+                            
+                            <!-- Water -->
+                            <path d="M 0 350 Q 100 340, 200 360 T 400 350 L 400 400 L 0 400 Z" fill="rgba(0,180,216,0.08)"/>
+                            
+                            <!-- Street grid -->
+                            <g stroke="rgba(255,255,255,0.06)" stroke-width="1">
+                                <line x1="0" y1="50" x2="400" y2="50"/>
+                                <line x1="0" y1="120" x2="400" y2="120"/>
+                                <line x1="0" y1="190" x2="400" y2="190"/>
+                                <line x1="0" y1="260" x2="400" y2="260"/>
+                                <line x1="0" y1="330" x2="400" y2="330"/>
+                                <line x1="50" y1="0" x2="50" y2="400"/>
+                                <line x1="130" y1="0" x2="130" y2="400"/>
+                                <line x1="210" y1="0" x2="210" y2="400"/>
+                                <line x1="290" y1="0" x2="290" y2="400"/>
+                                <line x1="360" y1="0" x2="360" y2="400"/>
+                            </g>
+
+                            <!-- Route path -->
+                            <path d="M 80 300 L 80 190 L 130 190 L 130 120 Q 130 100, 150 100 L 210 100 L 210 50 Q 210 30, 230 30 L 290 30 Q 310 30, 310 50 L 310 120 L 360 120 L 360 190 L 290 190 L 290 260 Q 290 280, 270 280 L 210 280 L 210 330 L 130 330 L 130 260 Q 130 240, 110 240 L 80 240 Z"
+                                  fill="none"
+                                  stroke="url(#showRouteGrad)"
+                                  stroke-width="3"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  filter="url(#glow)"
+                                  class="show-route"
+                                  stroke-dasharray="1200"
+                                  stroke-dashoffset="1200"
+                                  style="animation: drawShowRoute 3s ease-in-out 0.5s forwards;"/>
+
+                            <!-- Start/End marker -->
+                            <circle cx="80" cy="300" r="8" fill="#0d1117" stroke="#ff6b35" stroke-width="3"/>
+                            <circle cx="80" cy="300" r="3" fill="#ff6b35"/>
+
+                            <!-- Distance label -->
+                            <g transform="translate(180, 190)">
+                                <rect x="-35" y="-14" width="70" height="28" rx="14" fill="rgba(255,107,53,0.15)" stroke="rgba(255,107,53,0.3)"/>
+                                <text x="0" y="4" text-anchor="middle" fill="#ff6b35" font-size="12" font-weight="700">7.0 km</text>
+                            </g>
+
+                            <!-- Labels -->
+                            <text x="70" y="95" fill="rgba(255,255,255,0.2)" font-size="9" font-family="-apple-system">CENTRAL PARK</text>
+                            <text x="240" y="245" fill="rgba(255,255,255,0.2)" font-size="9" font-family="-apple-system">RIVERSIDE</text>
+                            <text x="150" y="385" fill="rgba(255,255,255,0.15)" font-size="9" font-family="-apple-system">RIVER PROMENADE</text>
+                        </svg>
+                    </div>
+                </div>
+                <div class="showcase-text reveal">
+                    <div class="section-tag" style="text-align:left">Route Engine</div>
+                    <h2 style="text-align:left">Every route,<br>optimized.</h2>
+                    <p class="section-desc" style="text-align:left; margin-bottom:24px;">
+                        LoopRun's routing engine doesn't just find a path — it finds the <em>right</em> path. Here's what goes into every calculation:
+                    </p>
+                    <ul class="showcase-list">
+                        <li><span class="check-icon">✓</span> Pedestrian-safe streets only — no highways, no sketchy crossings</li>
+                        <li><span class="check-icon">✓</span> Scenic priority — parks, waterfronts, and greenways preferred</li>
+                        <li><span class="check-icon">✓</span> Elevation awareness — optional flat routes for easy days</li>
+                        <li><span class="check-icon">✓</span> Minimized repetition — no running the same block twice</li>
+                        <li><span class="check-icon">✓</span> Real-time traffic and construction avoidance</li>
+                        <li><span class="check-icon">✓</span> Privacy-first — all routing done on-device where possible</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-tag">FAQ</div>
+                <h2>Questions?</h2>
+                <p class="section-desc">Everything you might want to know before lacing up.</p>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        When will LoopRun be available?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        We're targeting a TestFlight beta in Q1 2025, with a public App Store release in Q2. Join the waitlist to get early access and help shape the product.
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        Do I need my iPhone with me?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        Nope. LoopRun runs natively on Apple Watch with watchOS 10+. Route calculation, navigation, and workout tracking all happen on your wrist. Cellular or GPS-only models both work.
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        How accurate is the distance?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        Our route engine targets ±100 meters of your requested distance. For a 5K run, that's within 2% — more accurate than most GPS watch distance measurements themselves.
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        Can I use it for cycling or walking?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        The initial release focuses on running, but we're building the routing engine to support walking and cycling modes from the start. Expect those in a post-launch update.
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        What about offline use?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        Routes are cached on your watch for the duration of your run. For full offline planning, you can pre-download map regions on your iPhone and sync them to your watch before heading out.
+                    </div>
+                </div>
+                <div class="faq-item reveal">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        How much will it cost?
+                        <span class="chevron">+</span>
+                    </button>
+                    <div class="faq-a">
+                        We're exploring a freemium model — free for routes up to 5km, with a subscription for unlimited distance, destination mode, and advanced features. Exact pricing will be announced closer to launch.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta">
+        <div class="container">
+            <div class="cta-content reveal">
+                <div class="section-tag">Join the Waitlist</div>
+                <h2>Your perfect run<br>starts here.</h2>
+                <p class="section-desc" style="margin-bottom:40px;">
+                    Be first in line when LoopRun hits the App Store. Get beta access, exclusive updates, and a say in what we build next.
+                </p>
+                <div class="hero-cta">
+                    <button class="btn-primary" onclick="showToast()">Join the Waitlist →</button>
+                    <button class="btn-secondary" onclick="document.getElementById('faq').scrollIntoView({behavior:'smooth'})">Read FAQ</button>
+                </div>
+                <p style="margin-top:20px; font-size:13px; color:var(--text-3);">No spam. Unsubscribe anytime.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a href="#hero" class="logo">
+                        <div class="logo-icon"></div>
+                        LoopRun
+                    </a>
+                    <p>The smartest way to plan your run. Set a distance, get a route, and arrive exactly where you want — every single time.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#how">How It Works</a></li>
+                        <li><a href="#showcase">Route Engine</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Press Kit</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2026 LoopRun. Not affiliated with Apple Inc. Apple Watch is a trademark of Apple Inc.</p>
+                <div class="footer-social">
+                    <a href="#" title="Twitter">𝕏</a>
+                    <a href="#" title="Instagram">📷</a>
+                    <a href="#" title="GitHub">⌥</a>
+                    <a href="#" title="Email">✉</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast notification -->
+    <div id="toast" style="
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: linear-gradient(135deg, #ff6b35, #ff2d55);
+        color: #fff;
+        padding: 14px 28px;
+        border-radius: 100px;
+        font-size: 15px;
+        font-weight: 600;
+        z-index: 9999;
+        box-shadow: 0 8px 30px rgba(255,45,85,0.4);
+        transition: transform 0.4s ease;
+        white-space: nowrap;
+    ">🎉 You're on the list! We'll be in touch.</div>
+
+    <script>
+        // ===== Scroll Reveal =====
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        // ===== FAQ Accordion =====
+        function toggleFaq(btn) {
+            const item = btn.parentElement;
+            const isOpen = item.classList.contains('open');
+            document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+            if (!isOpen) item.classList.add('open');
+        }
+
+        // ===== Showcase route animation =====
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes drawShowRoute {
+                to { stroke-dashoffset: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ===== Toast =====
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(-50%) translateY(100px)';
+            }, 3500);
+        }
+
+        // ===== Nav background on scroll =====
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.background = 'rgba(10, 10, 15, 0.85)';
+            } else {
+                nav.style.background = 'rgba(10, 10, 15, 0.7)';
+            }
+        });
+    </script>
+</body>
+</html>
