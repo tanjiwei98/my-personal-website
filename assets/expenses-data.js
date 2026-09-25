@@ -22,16 +22,5 @@ window.EXPENSES = [
     "tax": true,
     "retention_until": "2033",
     "receipt": "2_2026-09-25.png"
-  },
-  {
-    "id": 3,
-    "date": "2026-09-25",
-    "amount": 29.85,
-    "currency": "RM",
-    "item": "GrabFood 麦当劳（2份开心乐园餐：Ayam Goreng Spicy + Chicken Burger）",
-    "category": "餐饮",
-    "source": "discord/💰expenses",
-    "raw": "GrabFood McD RM29.85 incl tax 1.43 delivery 0.80 packaging 3.90 -0.20 coins",
-    "receipt": "3_2026-09-25.png"
   }
 ];
