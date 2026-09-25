@@ -22,5 +22,18 @@ window.EXPENSES = [
     "tax": true,
     "retention_until": "2033",
     "receipt": "2_2026-09-25.png"
+  },
+  {
+    "id": 3,
+    "date": "2026-09-25",
+    "amount": 84.75,
+    "currency": "RM",
+    "item": "Ollama AI 订阅",
+    "category": "其他",
+    "source": "discord/💰expenses",
+    "raw": "Rm 84.75 Ollama AI subscription",
+    "tax": true,
+    "retention_until": "2033",
+    "receipt": "3_2026-09-25.png"
   }
 ];
