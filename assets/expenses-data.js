@@ -35,5 +35,25 @@ window.EXPENSES = [
     "tax": true,
     "retention_until": "2033",
     "receipt": "3_2026-09-25.png"
+  },
+  {
+    "id": 4,
+    "date": "2026-09-25",
+    "amount": 150.0,
+    "currency": "RM",
+    "item": "街机 Arcade",
+    "category": "娱乐",
+    "source": "discord/💰expenses",
+    "raw": "RM 150 玩arcade"
+  },
+  {
+    "id": 5,
+    "date": "2026-09-25",
+    "amount": 98.0,
+    "currency": "RM",
+    "item": "月饼",
+    "category": "购物",
+    "source": "discord/💰expenses",
+    "raw": "Rm 98 买月饼"
   }
 ];
