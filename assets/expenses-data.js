@@ -55,5 +55,15 @@ window.EXPENSES = [
     "category": "购物",
     "source": "discord/💰expenses",
     "raw": "Rm 98 买月饼"
+  },
+  {
+    "id": 6,
+    "date": "2026-09-27",
+    "amount": 20.0,
+    "currency": "RM",
+    "item": "打高尔夫",
+    "category": "娱乐",
+    "source": "discord/💰expenses",
+    "raw": "Rm20 打golf"
   }
 ];
